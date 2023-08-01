@@ -19,4 +19,41 @@ public with sharing class CTPersonTriggerHandler {
             }
          }
     }
+
+    public static void afterUpdate(List<Person__c> newPerson, Map<Id,Person__c> oldPerson){
+
+        //to store change in status
+        Set<Id> statusChange = new Set<Id>();
+        //to store if red status
+        Set<Id> redStatus = new Set<Id>();
+    
+        for(Person__c per : newPerson){
+            //checking if the status changed
+            if(per.Health_Status__c != oldPerson.get(per.Id).Health_Status__c){
+                statusChange.add(per.Id);
+            }
+            //checking if the status changed to Red
+           // if(per.Health_Status__c != oldPerson.get(per.Id).Health_Status__c && per.Health_Status__c = 'Red'){
+            if(per.Health_Status__c == 'Red' && oldPerson.get(per.Id).Health_Status__c ! = 'Red'){
+                redStatus.add(per.Id);
+            }
+        }
+
+        //Cohabitants and Primary Contacts
+        Set<Id> orangeStatus = new Set<Id>();
+        //Neighbours and Secondary Contacts
+        Set<Id> yellowStatus = new Set<Id>();
+
+        //passing redStatus since we need to update only when the status for the Person changes to Red
+// ------------------WE ALSO NEED TO STOP PROCESSING A RECORD WHICH HAS ALREADY BEEN PROCESSED----------------------
+        //adding all cohabitants we get to the orangeStatus set
+        orangeStatus.addAll(CTPersonController.getCohabitants(redStatus));
+         //adding all neighbouts we get to the yellowStatus set
+        yellowStatus.addAll(CTPersonController.getNeighbours(redStatus));
+         //adding all primaryContacts we get to the orangeStatus set
+        Set<Id> primaryContacts = CTPersonController.getPrimaryContact(redStatus);
+        orangeStatus.addAll(primaryContacts);
+         //adding all secondaryContact we get to the yellowStatus set , we need primaryContacts for secondryContacts 
+        yellowStatus.addAll(CTPersonController.getsecondaryContacts(primaryContacts));
+    }
 }
